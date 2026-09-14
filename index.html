@@ -1,0 +1,539 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Margin Calc">
+  <meta name="theme-color" content="#0f172a">
+  <title>Margin & GST Calculator</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body, html {
+      height: 100%;
+      width: 100%;
+      background-color: #0f172a;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* 1. Dark Slate Header */
+    .app-header {
+      background-color: #0f172a;
+      color: #ffffff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+
+    .app-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      border: none;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-copy {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .btn-reset {
+      background-color: #e11d48;
+      color: white;
+    }
+
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      position: relative;
+      background-color: #cbd5e1;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+
+    /* Column Headers & Colors */
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 2px;
+      text-align: center;
+      border-right: 1px solid rgba(255, 255, 255, 0.3);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.25);
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    th.col-index { background-color: #1e293b; width: 28px; color: #ffffff; }
+    th.col-a { background-color: #2563eb; width: 17%; } /* Column A (Price) - Blue */
+    th.col-z { background-color: #0891b2; width: 14%; } /* Column Z (Disc %) - Cyan */
+    th.col-x { background-color: #0d9488; width: 18%; } /* Column X (Disc Price) - Teal */
+    th.col-xgst { background-color: #059669; width: 19%; } /* Column X+18% (Price+GST) - Emerald */
+    th.col-b { background-color: #9333ea; width: 14%; } /* Column B (Margin) - Purple */
+    th.col-c { background-color: #ca8a04; color: #000000; width: 18%; } /* Column C (Total) - Gold */
+    th.col-action { background-color: #1e293b; width: 24px; }
+
+    td {
+      border-right: 1px solid rgba(0, 0, 0, 0.15);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+      height: 30px;
+      padding: 0;
+      font-weight: 700;
+    }
+
+    .row-index {
+      background-color: #e2e8f0;
+      text-align: center;
+      color: #334155;
+      font-size: 10px;
+      font-weight: 800;
+      user-select: none;
+    }
+
+    /* Cell Background Colors */
+    td.col-a { background-color: #3b82f6; }
+    td.col-z { background-color: #22d3ee; }
+    td.col-x { background-color: #2dd4bf; }
+    td.col-xgst { background-color: #34d399; }
+    td.col-b { background-color: #c084fc; }
+    td.col-c { background-color: #facc15; }
+    td.col-action { background-color: #f1f5f9; text-align: center; }
+
+    /* Inputs Formatting */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    input {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      text-align: right;
+      padding: 0 4px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #000000;
+      outline: none;
+    }
+
+    input:focus {
+      background-color: rgba(255, 255, 255, 0.45) !important;
+      outline: 2px solid #000000;
+    }
+
+    input::placeholder {
+      color: rgba(0, 0, 0, 0.35);
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .read-only-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 4px;
+      height: 100%;
+      color: #000000;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .clear-row-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .clear-row-btn:hover {
+      color: #e11d48;
+    }
+
+    /* Sticky TOT Row Bottom Summary */
+    tfoot {
+      position: sticky;
+      bottom: 0;
+      z-index: 15;
+    }
+
+    tfoot tr {
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.25);
+    }
+
+    tfoot td {
+      height: 32px;
+      font-weight: 900;
+      font-size: 11px;
+      text-align: right;
+      padding: 0 4px;
+      border-top: 2px solid #0f172a;
+    }
+
+    tfoot td.row-index {
+      background-color: #0f172a;
+      color: #ffffff;
+      text-align: center;
+      font-size: 9px;
+    }
+
+    tfoot td.col-a { background-color: #1d4ed8; color: #ffffff; }
+    tfoot td.col-z { background-color: #0e7490; color: #ffffff; }
+    tfoot td.col-x { background-color: #0f766e; color: #ffffff; }
+    tfoot td.col-xgst { background-color: #047857; color: #ffffff; }
+    tfoot td.col-b { background-color: #7e22ce; color: #ffffff; }
+    tfoot td.col-c { background-color: #a16207; color: #ffffff; }
+    tfoot td.col-action { background-color: #0f172a; }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 44px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1e293b;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 50;
+      border: 1px solid #475569;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-header">
+    <div class="app-title">
+      <i class="fa-solid fa-calculator text-emerald-400"></i>
+      <span>MARGIN & GST CALCULATOR</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-copy" onclick="copyCSV()">
+        <i class="fa-solid fa-copy"></i> Copy
+      </button>
+      <button class="btn btn-reset" onclick="resetAllData()">
+        <i class="fa-solid fa-rotate-left"></i> RESET
+      </button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-index">#</th>
+          <th class="col-a">A<br><span style="font-size:8px;font-weight:normal;">Price</span></th>
+          <th class="col-z">Z<br><span style="font-size:8px;font-weight:normal;">Disc %</span></th>
+          <th class="col-x">X<br><span style="font-size:8px;font-weight:normal;">Disc Price</span></th>
+          <th class="col-xgst">X+18%<br><span style="font-size:8px;font-weight:normal;">Price+GST</span></th>
+          <th class="col-b">B<br><span style="font-size:8px;font-weight:normal;">Margin</span></th>
+          <th class="col-c">C<br><span style="font-size:8px;font-weight:normal;">Total</span></th>
+          <th class="col-action"></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- 15 Rows generated dynamically -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="row-index">TOT</td>
+          <td class="col-a" id="totalA">0</td>
+          <td class="col-z" id="totalZ">0.00</td>
+          <td class="col-x" id="totalX">0.00</td>
+          <td class="col-xgst" id="totalXgst">0.00</td>
+          <td class="col-b" id="totalB">0</td>
+          <td class="col-c" id="totalC">0.00</td>
+          <td class="col-action"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div id="toast" class="toast">
+    <i class="fa-solid fa-check text-emerald-400"></i>
+    <span id="toastMsg">Action complete</span>
+  </div>
+
+  <script>
+    const TOTAL_ROWS = 15;
+    const STORAGE_KEY = "clean_margin_gst_calc_v2";
+
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try { 
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === TOTAL_ROWS) {
+            return parsed;
+          }
+        } catch(e) {}
+      }
+      return Array.from({ length: TOTAL_ROWS }, () => ({ price: "", discount: "", margin: "" }));
+    }
+
+    let rowsData = loadData();
+
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      for (let i = 0; i < TOTAL_ROWS; i++) {
+        const rowData = rowsData[i] || { price: "", discount: "", margin: "" };
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td class="row-index">${i + 1}</td>
+          
+          <!-- Column A (Price) - Input field (Blue header) -->
+          <td class="col-a">
+            <input type="number" inputmode="decimal" id="price-${i}" value="${rowData.price || ''}" placeholder="" oninput="handleInput(${i})">
+          </td>
+          
+          <!-- Column Z (Disc %) - Input field (Cyan header) -->
+          <td class="col-z">
+            <input type="number" inputmode="decimal" id="discount-${i}" value="${rowData.discount || ''}" placeholder="" oninput="handleInput(${i})">
+          </td>
+          
+          <!-- Column X (Disc Price) - Read-only output calculated as A - (A * Z / 100) -->
+          <td class="col-x">
+            <div class="read-only-cell" id="discPrice-${i}"></div>
+          </td>
+
+          <!-- Column X+18% (Price+GST) - Read-only output calculated as X * 1.18 -->
+          <td class="col-xgst">
+            <div class="read-only-cell" id="gst-${i}"></div>
+          </td>
+
+          <!-- Column B (Margin) - Input field (Purple header) -->
+          <td class="col-b">
+            <input type="number" inputmode="decimal" id="margin-${i}" value="${rowData.margin || ''}" placeholder="" oninput="handleInput(${i})">
+          </td>
+
+          <!-- Column C (Total) - Read-only output calculated as (X * 1.18) + B -->
+          <td class="col-c">
+            <div class="read-only-cell" id="total-${i}"></div>
+          </td>
+
+          <!-- Row Clear Action -->
+          <td class="col-action">
+            <button class="clear-row-btn" onclick="clearRow(${i})" title="Clear Row">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+      calculateAll();
+    }
+
+    function handleInput(index) {
+      const priceVal = document.getElementById(`price-${index}`).value;
+      const discountVal = document.getElementById(`discount-${index}`).value;
+      const marginVal = document.getElementById(`margin-${index}`).value;
+
+      rowsData[index] = { price: priceVal, discount: discountVal, margin: marginVal };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsData));
+      calculateAll();
+    }
+
+    function calculateAll() {
+      let sumA = 0;
+      let sumZ = 0;
+      let sumX = 0;
+      let sumXgst = 0;
+      let sumB = 0;
+      let sumC = 0;
+
+      for (let i = 0; i < TOTAL_ROWS; i++) {
+        const priceInput = document.getElementById(`price-${i}`);
+        const discountInput = document.getElementById(`discount-${i}`);
+        const marginInput = document.getElementById(`margin-${i}`);
+
+        if (!priceInput || !discountInput || !marginInput) continue;
+
+        const price = parseFloat(priceInput.value) || 0;
+        const discountPct = parseFloat(discountInput.value) || 0;
+        const margin = parseFloat(marginInput.value) || 0;
+
+        const hasPrice = priceInput.value.trim() !== "";
+        const hasDiscount = discountInput.value.trim() !== "";
+        const hasMargin = marginInput.value.trim() !== "";
+
+        sumA += price;
+        sumB += margin;
+        if (hasDiscount) sumZ += discountPct;
+
+        // Column X: Formula = A - (A * Z / 100)
+        let discPrice = price;
+        if (hasPrice) {
+          if (hasDiscount && discountPct > 0) {
+            discPrice = price - (price * (discountPct / 100));
+          } else {
+            discPrice = price;
+          }
+          sumX += discPrice;
+        }
+
+        // Column X+18%: Formula = X * 1.18
+        const priceWithGst = hasPrice ? (discPrice * 1.18) : 0;
+        sumXgst += priceWithGst;
+
+        // Column C: Formula = (X * 1.18) + B
+        const rowTotal = (hasPrice || hasMargin) ? (priceWithGst + margin) : 0;
+        sumC += rowTotal;
+
+        // Render Outputs
+        document.getElementById(`discPrice-${i}`).textContent = hasPrice ? discPrice.toFixed(2) : "";
+        document.getElementById(`gst-${i}`).textContent = hasPrice ? priceWithGst.toFixed(2) : "";
+        document.getElementById(`total-${i}`).textContent = (hasPrice || hasMargin) ? rowTotal.toFixed(2) : "";
+      }
+
+      // Sticky TOT Footer updates in real-time
+      document.getElementById("totalA").textContent = sumA ? sumA.toLocaleString('en-US') : "0";
+      document.getElementById("totalZ").textContent = sumZ ? sumZ.toFixed(2) : "0.00";
+      document.getElementById("totalX").textContent = sumX ? sumX.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00";
+      document.getElementById("totalXgst").textContent = sumXgst ? sumXgst.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00";
+      document.getElementById("totalB").textContent = sumB ? sumB.toLocaleString('en-US') : "0";
+      document.getElementById("totalC").textContent = sumC ? sumC.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00";
+    }
+
+    function clearRow(index) {
+      rowsData[index] = { price: "", discount: "", margin: "" };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rowsData));
+      renderTable();
+    }
+
+    function resetAllData() {
+      rowsData = Array.from({ length: TOTAL_ROWS }, () => ({ price: "", discount: "", margin: "" }));
+      localStorage.removeItem(STORAGE_KEY);
+      renderTable();
+      showToast("All data reset to blank!");
+    }
+
+    function copyCSV() {
+      let csv = "Price (A),Disc % (Z),Disc Price (X),Price+18% GST (X+18%),Margin (B),Total (C)\n";
+
+      for (let i = 0; i < TOTAL_ROWS; i++) {
+        const r = rowsData[i] || {};
+        const p = r.price || '';
+        const d = r.discount || '';
+        const m = r.margin || '';
+        if (p || m) {
+          const pNum = parseFloat(p) || 0;
+          const dPct = parseFloat(d) || 0;
+          const mNum = parseFloat(m) || 0;
+          const discPrice = dPct > 0 ? pNum - (pNum * (dPct / 100)) : pNum;
+          const xgst = (discPrice * 1.18).toFixed(2);
+          const c = (parseFloat(xgst) + mNum).toFixed(2);
+          csv += `${p},${d}%,${discPrice.toFixed(2)},${xgst},${m},${c}\n`;
+        }
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = csv;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Copied CSV to clipboard!");
+      } catch (err) {
+        showToast("Copy failed");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    // Initial render
+    renderTable();
+  </script>
+</body>
+</html>
+```
