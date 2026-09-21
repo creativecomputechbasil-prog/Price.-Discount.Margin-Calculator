@@ -46,7 +46,7 @@
         th.col-del, td.col-del { background-color: #eff2f3; color: #555; cursor: pointer; font-weight: bold; width: 30px; }
 
         .gst-cell-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .gst-val-sub { font-size: 11px; padding-bottom: 4px; color: #222; }
+        .gst-val-sub { font-size: 11px; padding-bottom: 4px; color: #222; font-weight: bold; }
 
         .total-row { border-top: 3px solid #0d1116; color: white; }
         .total-row td { padding: 12px 2px; font-weight: bold; text-align: center; }
@@ -93,13 +93,13 @@
     <tfoot>
         <tr class="total-row">
             <td class="total-label">TOT</td>
-            <td class="col-a">0.00</td>
-            <td class="col-z">0.00</td>
-            <td class="col-x">0.00</td>
-            <td class="col-gst">0.00</td>
-            <td class="col-b">0.00</td>
-            <td class="col-qty">0</td>
-            <td class="col-c">0.00</td>
+            <td class="col-a" id="tot-a">0.00</td>
+            <td class="col-z" id="tot-z">0.00</td>
+            <td class="col-x" id="tot-x">0.00</td>
+            <td class="col-gst" id="tot-gst">0.00</td>
+            <td class="col-b" id="tot-b">0.00</td>
+            <td class="col-qty" id="tot-qty">0</td>
+            <td class="col-c" id="tot-c">0.00</td>
             <td class="col-del"></td>
         </tr>
     </tfoot>
@@ -113,38 +113,79 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="row-num">${i}</td>
-                <td class="col-a"><input type="number" value="0"></td>
-                <td class="col-z"><input type="number" value="0"></td>
-                <td class="col-x"><input type="text" value="0.00" readonly></td>
+                <td class="col-a"><input type="number" class="in-a" value="0" oninput="calculate()"></td>
+                <td class="col-z"><input type="number" class="in-z" value="0" oninput="calculate()"></td>
+                <td class="col-x"><input type="text" class="in-x" value="0.00" readonly></td>
                 <td class="col-gst">
                     <div class="gst-cell-container">
-                        <select>
-                            <option>+18%</option>
-                            <option>+12%</option>
-                            <option>+5%</option>
-                            <option>0%</option>
+                        <select class="in-gst-sel" onchange="calculate()">
+                            <option value="18">+18%</option>
+                            <option value="12">+12%</option>
+                            <option value="5">+5%</option>
+                            <option value="0">0%</option>
                         </select>
-                        <span class="gst-val-sub">0.00</span>
+                        <span class="gst-val-sub in-gst-val">0.00</span>
                     </div>
                 </td>
-                <td class="col-b"><input type="number" value="0"></td>
-                <td class="col-qty"><input type="number" value="1"></td>
-                <td class="col-c"><input type="text" value="0.00" readonly></td>
+                <td class="col-b"><input type="number" class="in-b" value="0" oninput="calculate()"></td>
+                <td class="col-qty"><input type="number" class="in-qty" value="1" oninput="calculate()"></td>
+                <td class="col-c"><input type="text" class="in-c" value="0.00" readonly></td>
                 <td class="col-del" onclick="clearRow(this)">×</td>
             `;
             tbody.appendChild(tr);
         }
+        calculate();
+    }
+
+    function calculate() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        let totA = 0, totZ = 0, totX = 0, totGst = 0, totB = 0, totQty = 0, totC = 0;
+
+        rows.forEach(tr => {
+            const price = parseFloat(tr.querySelector('.in-a').value) || 0;
+            const discPct = parseFloat(tr.querySelector('.in-z').value) || 0;
+            const gstPct = parseFloat(tr.querySelector('.in-gst-sel').value) || 0;
+            const margin = parseFloat(tr.querySelector('.in-b').value) || 0;
+            const qty = parseFloat(tr.querySelector('.in-qty').value) || 0;
+
+            // Calculations
+            const discPrice = price - (price * (discPct / 100));
+            const priceWithGst = discPrice + (discPrice * (gstPct / 100));
+            const total = (priceWithGst + margin) * qty;
+
+            // Set Row Outputs
+            tr.querySelector('.in-x').value = discPrice.toFixed(2);
+            tr.querySelector('.in-gst-val').innerText = priceWithGst.toFixed(2);
+            tr.querySelector('.in-c').value = total.toFixed(2);
+
+            // Accumulate Totals
+            totA += price;
+            totZ += discPct;
+            totX += discPrice;
+            totGst += priceWithGst;
+            totB += margin;
+            totQty += qty;
+            totC += total;
+        });
+
+        // Set Footers
+        document.getElementById('tot-a').innerText = totA.toFixed(2);
+        document.getElementById('tot-z').innerText = totZ.toFixed(2);
+        document.getElementById('tot-x').innerText = totX.toFixed(2);
+        document.getElementById('tot-gst').innerText = totGst.toFixed(2);
+        document.getElementById('tot-b').innerText = totB.toFixed(2);
+        document.getElementById('tot-qty').innerText = totQty;
+        document.getElementById('tot-c').innerText = totC.toFixed(2);
     }
 
     function clearRow(btn) {
         const tr = btn.parentElement;
-        const inputs = tr.querySelectorAll('input');
-        inputs[0].value = 0;
-        inputs[1].value = 0;
-        inputs[2].value = '0.00';
-        inputs[3].value = 0;
-        inputs[4].value = 1;
-        inputs[5].value = '0.00';
+        tr.querySelector('.in-a').value = 0;
+        tr.querySelector('.in-z').value = 0;
+        tr.querySelector('.in-b').value = 0;
+        tr.querySelector('.in-qty').value = 1;
+        tr.querySelector('.in-gst-sel').value = "18";
+        calculate();
     }
 
     function resetTable() {
@@ -152,7 +193,20 @@
     }
 
     function copyTable() {
-        alert("Table copied!");
+        let text = "PRICE\tDISC%\tDISC PRICE\tPRICE+GST\tMARGIN\tQTY\tTOTAL\n";
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(tr => {
+            const price = tr.querySelector('.in-a').value;
+            const disc = tr.querySelector('.in-z').value;
+            const discPrice = tr.querySelector('.in-x').value;
+            const gstVal = tr.querySelector('.in-gst-val').innerText;
+            const margin = tr.querySelector('.in-b').value;
+            const qty = tr.querySelector('.in-qty').value;
+            const total = tr.querySelector('.in-c').value;
+            text += `${price}\t${disc}\t${discPrice}\t${gstVal}\t${margin}\t${qty}\t${total}\n`;
+        });
+        navigator.clipboard.writeText(text);
+        alert("Table content copied to clipboard!");
     }
 
     createTable();
